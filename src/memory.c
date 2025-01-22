@@ -1,6 +1,6 @@
 #include "../include/memory.h"
 
-byte memory[0x100];
+byte memory[4096];
 
 byte read() {
     return 0;

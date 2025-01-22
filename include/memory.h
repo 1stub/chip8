@@ -3,7 +3,7 @@
 
 #include "common.h"
 
-extern byte memory[0x100];
+extern byte memory[4096];
 
 byte read();
 void write();

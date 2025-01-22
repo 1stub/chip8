@@ -9,7 +9,7 @@ OUT_OBJ=$(BUILD_DIR)output/obj/
 BUILD := dev
 
 CC=gcc
-CSTDFLAGS=-Wall -Wextra -Wno-unused-parameter -Wuninitialized -Werror -std=c89 -pedantic
+CSTDFLAGS=$(shell sdl2-config --cflags) -Wall -Wextra -Wno-unused-parameter -Wuninitialized -Werror -std=c89 -pedantic -lSDL2 -lSDL2main
 
 CFLAGS_OPT.debug=-O0 -g -ggdb -fno-omit-frame-pointer
 CFLAGS_OPT.dev=-O0 -g -ggdb -fno-omit-frame-pointer
@@ -17,9 +17,9 @@ CFLAGS_OPT.release=-O3 -fno-omit-frame-pointer -march=x86-64-v3
 CFLAGS=${CFLAGS_OPT.${BUILD}} ${CSTDFLAGS}
 CFLAGS_TEST=${CFLAGS_OPT.dev} ${CSTDFLAGS}
 
-HEADERS=$(INCLUDE_DIR)cpu.h $(INCLUDE_DIR)emulate.h $(INCLUDE_DIR)memory.h 
+HEADERS=$(INCLUDE_DIR)cpu.h $(INCLUDE_DIR)emulate.h $(INCLUDE_DIR)memory.h $(INCLUDE_DIR)display.h 
 
-OBJS=$(OUT_OBJ)cpu.o $(OUT_OBJ)emulate.o $(OUT_OBJ)memory.o
+OBJS=$(OUT_OBJ)cpu.o $(OUT_OBJ)emulate.o $(OUT_OBJ)memory.o $(OUT_OBJ)display.o
 
 all: $(OUT_EXE)chip
 
@@ -38,6 +38,11 @@ $(OUT_OBJ)emulate.o: $(HEADERS) $(SRC_DIR)emulate.c
 $(OUT_OBJ)memory.o: $(HEADERS) $(SRC_DIR)memory.c 
 	@mkdir -p $(OUT_OBJ)
 	$(CC) $(CFLAGS) -o $(OUT_OBJ)memory.o -c $(SRC_DIR)memory.c
+
+$(OUT_OBJ)display.o: $(HEADERS) $(SRC_DIR)display.c 
+	@mkdir -p $(OUT_OBJ)
+	$(CC) $(CFLAGS) -o $(OUT_OBJ)display.o -c $(SRC_DIR)display.c
+
 
 clean:
 	rm -rf $(OUT_EXE)* $(OUT_OBJ)*.o

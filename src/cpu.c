@@ -16,10 +16,14 @@ void execute() {
             }else if(opcode == 0x00EE) {
 
             }else {
-                /* PC = (opcode << 4); */
+                PC = NNN;
             }
+            break;
         }
-        case 0x1: 
+        case 0x1: {
+            PC = (opcode << 4);
+            break;
+        }
         case 0x2:
         case 0x3:
         case 0x4:
@@ -37,5 +41,4 @@ void execute() {
 
         default: break;
     }
-    printf("Hi from cpu\n");
 }
