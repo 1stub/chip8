@@ -1,7 +1,7 @@
-#include <stdio.h>
+#include "../include/emulate.h"
 
 int main(){
-    printf("Hello, World!\n");
+    emulate();
 
     return 0;
 }
