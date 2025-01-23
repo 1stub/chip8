@@ -16,6 +16,8 @@ typedef unsigned short word;
 #define DISPLAY_WIDTH 512
 #define DISPLAY_HEIGHT 256
 
+#define DISPLAY_SCALE DISPLAY_HEIGHT / CHIP8_HEIGHT 
+
 #define CHIP8_WIDTH 64
 #define CHIP8_HEIGHT 32
 

@@ -44,15 +44,15 @@ static void render_pixel_buffer() {
     SDL_Rect pixel_rect;  /* Declare variables at the beginning */
     int x, y;
 
-    pixel_rect.w = 4;
-    pixel_rect.h = 4;
+    pixel_rect.w = DISPLAY_SCALE;
+    pixel_rect.h = DISPLAY_SCALE;
 
     for ( y = 0; y < CHIP8_HEIGHT; y++) {
         for ( x = 0; x < CHIP8_WIDTH; x++) {
             if (pixel_buffer[y][x] != 0) {
-                pixel_rect.x = x * 4;  
-                pixel_rect.y = y * 4;
-                SDL_FillRect(win_surface, &pixel_rect, SDL_MapRGB(win_surface->format, 0xFF, 0xFF, 0xFF)); 
+                pixel_rect.x = x * DISPLAY_SCALE;  
+                pixel_rect.y = y * DISPLAY_SCALE;
+                SDL_FillRect(win_surface, &pixel_rect, SDL_MapRGB(win_surface->format, 0xFF, 0xDD, 0x33)); 
             }
         }
     }
