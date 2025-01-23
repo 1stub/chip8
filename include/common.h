@@ -10,6 +10,16 @@ typedef unsigned short word;
 #define false 0
 #define bool int
 
-#define GET_BIT(src, bit_no) src & (1 << bit_no)
+#define GET_BIT(src, bit_no) (((src) & (1 << (bit_no))) >> (bit_no))
+
+/* Scaled for large output, normally 64x32 */
+#define DISPLAY_WIDTH 512
+#define DISPLAY_HEIGHT 256
+
+#define CHIP8_WIDTH 64
+#define CHIP8_HEIGHT 32
+
+#define CHIP8_MEMORY_SIZE 4096
+#define CHIP8_ROM_BP 512
 
 #endif

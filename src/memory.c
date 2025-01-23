@@ -1,9 +1,12 @@
 #include "../include/memory.h"
 
-byte memory[4096];
+#include "string.h"
 
-byte read() {
-    return 0;
+byte memory[CHIP8_MEMORY_SIZE];
+bool pixel_buffer[CHIP8_HEIGHT][CHIP8_WIDTH];
+
+byte read(word index) {
+    return memory[index];
 }
 
 void write() {
@@ -11,6 +14,7 @@ void write() {
 }
 
 void load_rom(char *file){
+
     FILE *fp;
     size_t ret;
     fp = fopen(file, "rb");
@@ -19,7 +23,9 @@ void load_rom(char *file){
         return ;
     }
 
-    ret = fread(memory, sizeof(byte), 0x10000, fp);
+    memset(memory, 0, sizeof(memory));
+
+    ret = fread(&memory[CHIP8_ROM_BP], sizeof(byte), CHIP8_MEMORY_SIZE - CHIP8_ROM_BP, fp);
     if (ret == 0) {
         fprintf(stderr, "fread() failed or file is empty\n");
     }
