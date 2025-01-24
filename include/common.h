@@ -24,4 +24,6 @@ typedef unsigned short word;
 #define CHIP8_MEMORY_SIZE 4096
 #define CHIP8_ROM_BP 512
 
+#define CHIP8_KEY_COUNT 16
+
 #endif

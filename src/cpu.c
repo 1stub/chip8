@@ -21,6 +21,14 @@ byte chip8_font[80] = {
    0xF0,  0x80,  0xF0,  0x80,  0x80  /* F */
 };
 
+const SDL_Keycode chip8KeyMap[16] = {
+    SDLK_x, SDLK_1, SDLK_2, SDLK_3, 
+    SDLK_q, SDLK_w, SDLK_e, SDLK_a, 
+    SDLK_s, SDLK_d, SDLK_z, SDLK_c, 
+    SDLK_4, SDLK_r, SDLK_f, SDLK_v  
+};
+
+/* Nasty but no mallocs! Fuck the heap! */
 byte V[16];
 word stack[16];
 word PC;
@@ -117,26 +125,39 @@ void execute() {
                 case   0: V[X] = V[Y]; break;
                 case   1: V[X] |= V[Y]; break;
                 case   2: V[X] &= V[Y]; break;
-                case   3: V[X] ^= V[Y]; break;
-                case   4: {
-                    int sum = V[X] += V[Y]; 
-                    if (sum > 255) V[0xF] = 1;
-                    V[X] = sum;
+                case   3: {
+                    word result = V[X] ^ V[Y];
+                    V[0xF] = (result >> 8) & 0x01;
+                    V[X] = result; 
                 } 
                 break;
-                case   5: V[X] -= V[Y]; break;
+                case   4: {
+                    word sum = V[X] + V[Y];
+                    V[X] = (byte)sum;
+                    V[0xF] = sum > 255 ? true : false;
+                } 
+                break;
+                case   5: {
+                    bool should_flag = (V[X] >= V[Y]) ? true : false;
+                    V[X] = V[X] - V[Y];
+                    V[0xF] = (byte)should_flag;
+                }
+                break;
                 case   6: {
                     /* Some ambiguities to this instr */
                     word flag = V[X] & 0x0001;
                     V[X] >>= 1;
                     V[0xF] = flag;
                 } break;
-                case   7: V[X] = V[Y] - V[X]; break;
+                case   7: {
+                    V[X] = V[Y] - V[X]; 
+                    V[0xF] = (V[Y] > V[X]) ? true : false;
+                }break;
                 case 0xE: { 
                     /* Some ambiguities to this instr */
-                    word flag = V[X] & 0x0001;
+                    bool flag = V[X] & 0x80;
                     V[X] = V[X] << 1;
-                    V[0xF] = flag;
+                    V[0xF] = flag ? true : false;
                 }
                 break; 
                 default: break;
@@ -217,19 +238,31 @@ void execute() {
                     I = sum;
                 }
                 break;
-                case 0x0A: {
-                    const byte* key;
-                    SDL_PumpEvents();
-                    key = SDL_GetKeyboardState(NULL);
 
-                    /* We need to stay at this instr until keyboard input*/
-                    printf("KEY: %x\n", SDLK_RETURN);
-                    if(key[SDLK_RETURN]) {
-                        V[X] = SDLK_RETURN;
+                /* Logic related to detecting keyboard input is not working */
+                case 0x0A: {
+                    SDL_Event keyevent;
+                    int keyPressed = 0;
+
+                    while (!keyPressed) {
+                        if (SDL_PollEvent(&keyevent)) {
+                            if (keyevent.type == SDL_KEYDOWN) {
+                                SDL_Keycode pressedKey = keyevent.key.keysym.sym;
+
+                                int i;
+                                for (i = 0; i < 16; ++i) {
+                                    if (chip8KeyMap[i] == pressedKey) {
+                                        V[X] = i;    
+                                        keyPressed = 1; 
+                                        current_key_code = i;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
                     }
-                    else{
-                        PC -= 2;
-                    }
+
+                    PC += 2; 
                 }
                 break;
                 case 0x29: break;

@@ -47,6 +47,9 @@ static void render_pixel_buffer() {
     pixel_rect.w = DISPLAY_SCALE;
     pixel_rect.h = DISPLAY_SCALE;
 
+    /* Need to clear screen between each frame, could be optimized though */
+    SDL_FillRect(win_surface, NULL, SDL_MapRGB(win_surface->format, 0x00, 0x00, 0x00));
+
     for ( y = 0; y < CHIP8_HEIGHT; y++) {
         for ( x = 0; x < CHIP8_WIDTH; x++) {
             if (pixel_buffer[y][x] != 0) {
