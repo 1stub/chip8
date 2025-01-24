@@ -4,6 +4,10 @@
 #include "common.h"
 #include "memory.h"
 
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
 #define X       (opcode >> 8) & 0x000F
 #define Y       (opcode >> 4) & 0x000F
 #define N       (opcode & 0x000F)
