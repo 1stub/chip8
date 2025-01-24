@@ -7,7 +7,7 @@ extern byte memory[CHIP8_MEMORY_SIZE];
 extern bool pixel_buffer[CHIP8_HEIGHT][CHIP8_WIDTH];
 
 byte read(word index);
-void write();
+void write(word address, byte value);
 void load_rom(char *file);
 
 #endif

@@ -1,4 +1,6 @@
 #include "../include/cpu.h"
+#include <SDL2/SDL_events.h>
+#include <SDL2/SDL_keyboard.h>
 
 byte chip8_font[80] = {
    0xF0,  0x90,  0x90,  0x90,  0xF0, /* 0 */
@@ -26,6 +28,7 @@ word SP;
 word I;
 byte delay_timer;
 byte sound_timer;
+byte current_key_code;
 
 void cpu_init() {
     int i;
@@ -34,6 +37,7 @@ void cpu_init() {
     I  = 0x0000;
     delay_timer = 0;
     sound_timer = 0;
+    current_key_code = 0;
 
     for(i = 0; i < 80; i++) {
         memory[i] = chip8_font[i];
@@ -185,7 +189,21 @@ void execute() {
             break;
         }
         case 0xE: {
-            PC += 2;
+            switch(NN) {
+                case 0x9E: {
+                    if(V[X] == current_key_code) {
+                        PC += 2;
+                    }
+                } 
+                break;
+                case 0xA1: {
+                    if(V[X] != current_key_code) {
+                        PC += 2;
+                    }
+                }
+                PC+=2;
+                break;
+            }
             break;
         }
         case 0xF: {
@@ -199,11 +217,58 @@ void execute() {
                     I = sum;
                 }
                 break;
-                case 0x0A: break;
+                case 0x0A: {
+                    const byte* key;
+                    SDL_PumpEvents();
+                    key = SDL_GetKeyboardState(NULL);
+
+                    /* We need to stay at this instr until keyboard input*/
+                    printf("KEY: %x\n", SDLK_RETURN);
+                    if(key[SDLK_RETURN]) {
+                        V[X] = SDLK_RETURN;
+                    }
+                    else{
+                        PC -= 2;
+                    }
+                }
+                break;
                 case 0x29: break;
-                case 0x33: break;
-                case 0x55: break;
-                case 0x65: break;
+                case 0x33: {
+                    byte vx_val = V[X];
+                    byte digits[3];
+                    int idx;
+
+                    /* Extract digits in reverse order */
+                    for(idx = 2; idx >= 0; idx--) {
+                        digits[idx] = vx_val % 10;
+                        vx_val /= 10;
+                    }
+
+                    write(I, digits[0]);
+                    write(I + 1, digits[1]);
+                    write(I + 2, digits[2]);
+                }
+                break;
+                case 0x55: {
+                    /* Some ambiguities to this instr */
+                    int idx;
+                    for(idx = 0; idx <= (X); idx++) {
+                        write(I + idx, V[idx]);
+                    }
+                }
+                break;
+                case 0x65: {
+                    /* Some ambiguities to this instr */
+                    /** 
+                    * Older Chip8 interpreters modify I here,
+                    * Newer interpreters (Chip48 and superchip) don't 
+                    **/
+                    int idx;
+                    for(idx = 0; idx <= (X); idx++) {
+                        V[idx] = read(I + idx);
+                    }
+                }
+                break;
                 default: break;
             }
 
@@ -214,5 +279,16 @@ void execute() {
         default: {
             break;
         }
+    }
+}
+
+void update_timers() {
+    if(delay_timer > 0) {
+        delay_timer--;
+    }
+
+    if(sound_timer > 0) {
+        sound_timer--;
+        printf("BEEP!!!!\n");
     }
 }

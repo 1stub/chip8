@@ -9,8 +9,8 @@ byte read(word index) {
     return memory[index];
 }
 
-void write() {
-
+void write(word address, byte value) {
+    memory[address] = value;
 }
 
 void load_rom(char *file){

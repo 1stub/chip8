@@ -8,6 +8,7 @@ void emulate() {
 
     while(quit == false) {
         execute();
+        update_timers();
         update_display(&quit);
     }
     printf("Hi from emulator\n");
