@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "memory.h"
+#include "cpu.h"
 #include <SDL2/SDL.h>
 
 void init_display();
