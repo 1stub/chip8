@@ -1,4 +1,5 @@
 #include "../include/display.h"
+#include <SDL2/SDL_events.h>
 #include <SDL2/SDL_video.h>
 
 SDL_Window* win = NULL;
@@ -64,13 +65,46 @@ static void render_pixel_buffer() {
 }
 
 void update_display(bool* quit) {
-    SDL_ShowWindow(win);
-
+    static int count = 0;
+    count++;
+    
     while( SDL_PollEvent( &e ) ) { 
-        if( e.type == SDL_QUIT ) {
-            *quit = true;
+        switch(e.type) {
+            case SDL_QUIT: {
+                *quit = true;
+            }
+            break;
+            case SDL_KEYDOWN: { 
+                int i;
+                for( i = 0; i < 16; i++) {
+                    if(sdl_chip8_keymap[i] == e.key.keysym.sym) {
+                        keyboard_status[i] = true;
+                        just_pressed_key = true;
+                    }
+                }
+            }
+            break;
+
+            case SDL_KEYUP: {
+                int i;
+                for( i = 0; i < 16; i++) {
+                    if(sdl_chip8_keymap[i] == e.key.keysym.sym) {
+                        keyboard_status[i] = false;
+                        just_pressed_key = true;
+                    }
+                }
+            }
+            break;
+
+            default: break;
         }
     }
 
-    render_pixel_buffer();
+    /* TODO: Need to properly sync this to 60hz, runs super fast now */
+    /* I suspect we could just use SDL wait calls for this */
+    if(count > 700) {
+        SDL_ShowWindow(win);
+        render_pixel_buffer();
+        count = 0;
+    }
 }

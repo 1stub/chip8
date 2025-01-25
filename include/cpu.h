@@ -16,12 +16,15 @@
 #define NNN     (opcode & 0x0FFF)
 
 extern byte V[16];
+extern SDL_Keycode chip8KeyMap[16];
 extern word PC;
 extern word SP;
 extern word I;
 extern byte delay_timer;
 extern byte sound_timer;
-extern byte current_key_code;
+extern byte just_pressed_key;
+extern bool keyboard_status[CHIP8_KEY_COUNT];
+extern SDL_Keycode sdl_chip8_keymap[CHIP8_KEY_COUNT];
 
 void cpu_init();
 void execute();

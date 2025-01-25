@@ -2,6 +2,7 @@
 #define COMMON_H
 
 #include <stdio.h>
+#include <stdarg.h>
 
 typedef unsigned char byte;
 typedef unsigned short word;
@@ -26,4 +27,20 @@ typedef unsigned short word;
 
 #define CHIP8_KEY_COUNT 16
 
+/* Really wish I had C99 for this macro lol */
+#define DEBUG 1
+#if DEBUG
+static void debug_print(const char *fmt, ...) __attribute__((unused));
+static void debug_print(const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(stderr, fmt, args);
+    va_end(args);
+}
+#else
+static inline void debug_print(const char *fmt, ...) {
+    (void)fmt;
+}
 #endif
+
+#endif /* COMMON_H */

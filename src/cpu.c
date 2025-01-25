@@ -1,6 +1,7 @@
 #include "../include/cpu.h"
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keyboard.h>
+#include <SDL2/SDL_keycode.h>
 
 byte chip8_font[80] = {
    0xF0,  0x90,  0x90,  0x90,  0xF0, /* 0 */
@@ -21,13 +22,6 @@ byte chip8_font[80] = {
    0xF0,  0x80,  0xF0,  0x80,  0x80  /* F */
 };
 
-const SDL_Keycode chip8KeyMap[16] = {
-    SDLK_x, SDLK_1, SDLK_2, SDLK_3, 
-    SDLK_q, SDLK_w, SDLK_e, SDLK_a, 
-    SDLK_s, SDLK_d, SDLK_z, SDLK_c, 
-    SDLK_4, SDLK_r, SDLK_f, SDLK_v  
-};
-
 /* Nasty but no mallocs! Fuck the heap! */
 byte V[16];
 word stack[16];
@@ -36,7 +30,14 @@ word SP;
 word I;
 byte delay_timer;
 byte sound_timer;
-byte current_key_code;
+byte just_pressed_key;
+bool keyboard_status[CHIP8_KEY_COUNT];
+SDL_Keycode sdl_chip8_keymap[CHIP8_KEY_COUNT] = {
+    SDLK_1, SDLK_2, SDLK_3, SDLK_4,
+    SDLK_q, SDLK_w, SDLK_e, SDLK_r,
+    SDLK_a, SDLK_s, SDLK_d, SDLK_f,
+    SDLK_z, SDLK_x, SDLK_c, SDLK_v
+};
 
 void cpu_init() {
     int i;
@@ -45,7 +46,6 @@ void cpu_init() {
     I  = 0x0000;
     delay_timer = 0;
     sound_timer = 0;
-    current_key_code = 0;
 
     for(i = 0; i < 80; i++) {
         memory[i] = chip8_font[i];
@@ -53,6 +53,7 @@ void cpu_init() {
 
     memset(V, 0, sizeof(byte) * 16);
     memset(stack, 0, sizeof(word) * 16);
+    memset(keyboard_status, false, sizeof(bool) * CHIP8_KEY_COUNT);
 }
 
 /** 
@@ -65,7 +66,7 @@ void execute() {
     word opcode = read(PC) << 8 | read(PC + 1);
     word opcode_first_nibble = opcode >> 12; 
 
-    printf("OPCODE %x\n", opcode);
+    debug_print("[DEBUG] Opcode 0x%4x\n", opcode);
 
     switch(opcode_first_nibble) {
         case 0x0: {
@@ -166,8 +167,11 @@ void execute() {
             break;
         }
         case 0x9: {
-            if(V[X] != V[Y]) PC+=2;
-            PC += 2;
+            if(V[X] != V[Y]) {
+                PC += 4;
+            } else {
+                PC += 2;
+            }
             break;
         }
         case 0xA: {
@@ -210,20 +214,27 @@ void execute() {
             break;
         }
         case 0xE: {
+            debug_print("Keycode in V[X]: %x, Is keypressed?: %x\n", V[X], keyboard_status[V[X]]);
             switch(NN) {
-                case 0x9E: {
-                    if(V[X] == current_key_code) {
-                        PC += 2;
-                    }
-                } 
-                break;
-                case 0xA1: {
-                    if(V[X] != current_key_code) {
+                case 0x9E: { 
+                    if (keyboard_status[V[X]]) {
+                        PC += 4; 
+                    } else {
                         PC += 2;
                     }
                 }
-                PC+=2;
                 break;
+
+                case 0xA1: { 
+                    if (!keyboard_status[V[X]]) {
+                        PC += 4;
+                    } else {
+                        PC += 2;
+                    }
+                }
+                break;
+
+                default: break;
             }
             break;
         }
@@ -239,33 +250,22 @@ void execute() {
                 }
                 break;
 
-                /* Logic related to detecting keyboard input is not working */
                 case 0x0A: {
-                    SDL_Event keyevent;
-                    int keyPressed = 0;
-
-                    while (!keyPressed) {
-                        if (SDL_PollEvent(&keyevent)) {
-                            if (keyevent.type == SDL_KEYDOWN) {
-                                SDL_Keycode pressedKey = keyevent.key.keysym.sym;
-
-                                int i;
-                                for (i = 0; i < 16; ++i) {
-                                    if (chip8KeyMap[i] == pressedKey) {
-                                        V[X] = i;    
-                                        keyPressed = 1; 
-                                        current_key_code = i;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
+                    debug_print("[DEBUG] Wait for key instruction\n");
+                    if(just_pressed_key) {
+                        PC += 2;
+                        just_pressed_key = false;
+                        break;
                     }
-
-                    PC += 2; 
                 }
                 break;
-                case 0x29: break;
+
+                case 0x29: {
+                    debug_print("I = location of font for character V[0x%x] = 0x%x\n", X, V[X]);
+                    I = V[X] * 5;
+                }
+                break;
+
                 case 0x33: {
                     byte vx_val = V[X];
                     byte digits[3];
@@ -280,8 +280,11 @@ void execute() {
                     write(I, digits[0]);
                     write(I + 1, digits[1]);
                     write(I + 2, digits[2]);
+
+                    PC += 2;
                 }
                 break;
+
                 case 0x55: {
                     /* Some ambiguities to this instr */
                     int idx;
@@ -290,6 +293,7 @@ void execute() {
                     }
                 }
                 break;
+
                 case 0x65: {
                     /* Some ambiguities to this instr */
                     /** 
@@ -302,6 +306,7 @@ void execute() {
                     }
                 }
                 break;
+
                 default: break;
             }
 
@@ -316,6 +321,10 @@ void execute() {
 }
 
 void update_timers() {
+    /** 
+    * This doesnt do anythign when it hits zero. Not sure totally how to handle
+    * timers on this system totally
+    **/
     if(delay_timer > 0) {
         delay_timer--;
     }
