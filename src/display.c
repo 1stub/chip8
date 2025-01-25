@@ -64,9 +64,36 @@ static void render_pixel_buffer() {
     SDL_UpdateWindowSurface(win);  
 }
 
+/* Had to reference other emulator for this... bruh */
+int keymap(unsigned char k) {
+    switch (k) {
+        case '1': return 0x1;
+        case '2': return 0x2;
+        case '3': return 0x3;
+        case '4': return 0xc;
+
+        case 'q': return 0x4;
+        case 'w': return 0x5;
+        case 'e': return 0x6;
+        case 'r': return 0xd;
+
+        case 'a': return 0x7;
+        case 's': return 0x8;
+        case 'd': return 0x9;
+        case 'f': return 0xe;
+
+        case 'z': return 0xa;
+        case 'x': return 0x0;
+        case 'c': return 0xb;
+        case 'v': return 0xf;
+
+        default:  return -1;  
+    }
+}
+
 void update_display(bool* quit) {
-    static int count = 0;
-    count++;
+    static Uint32 last_frame_time = 0;
+    Uint32 current_time = SDL_GetTicks();
     
     while( SDL_PollEvent( &e ) ) { 
         switch(e.type) {
@@ -75,23 +102,19 @@ void update_display(bool* quit) {
             }
             break;
             case SDL_KEYDOWN: { 
-                int i;
-                for( i = 0; i < 16; i++) {
-                    if(sdl_chip8_keymap[i] == e.key.keysym.sym) {
-                        keyboard_status[i] = true;
-                        just_pressed_key = true;
-                    }
+                int chip8_key = keymap(e.key.keysym.sym);
+                if (chip8_key != -1) {  
+                    keyboard_status[chip8_key] = true;
+                    just_pressed_key = true;  
                 }
             }
             break;
 
             case SDL_KEYUP: {
-                int i;
-                for( i = 0; i < 16; i++) {
-                    if(sdl_chip8_keymap[i] == e.key.keysym.sym) {
-                        keyboard_status[i] = false;
-                        just_pressed_key = true;
-                    }
+                int chip8_key = keymap(e.key.keysym.sym);
+                if (chip8_key != -1) {  
+                    keyboard_status[chip8_key] = false;
+                    just_pressed_key = true;  
                 }
             }
             break;
@@ -100,11 +123,12 @@ void update_display(bool* quit) {
         }
     }
 
-    /* TODO: Need to properly sync this to 60hz, runs super fast now */
-    /* I suspect we could just use SDL wait calls for this */
-    if(count > 700) {
+    if(current_time - last_frame_time >= FRAME_DELAY) {
         SDL_ShowWindow(win);
         render_pixel_buffer();
-        count = 0;
+
+        last_frame_time = current_time;
+    } else {
+        SDL_Delay(FRAME_DELAY - (current_time - last_frame_time));
     }
 }

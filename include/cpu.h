@@ -24,7 +24,6 @@ extern byte delay_timer;
 extern byte sound_timer;
 extern byte just_pressed_key;
 extern bool keyboard_status[CHIP8_KEY_COUNT];
-extern SDL_Keycode sdl_chip8_keymap[CHIP8_KEY_COUNT];
 
 void cpu_init();
 void execute();

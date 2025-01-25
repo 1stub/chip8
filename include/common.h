@@ -17,6 +17,9 @@ typedef unsigned short word;
 #define DISPLAY_WIDTH 512
 #define DISPLAY_HEIGHT 256
 
+#define TARGET_FPS 60
+#define FRAME_DELAY 60 / TARGET_FPS 
+
 #define DISPLAY_SCALE DISPLAY_HEIGHT / CHIP8_HEIGHT 
 
 #define CHIP8_WIDTH 64
@@ -38,7 +41,8 @@ static void debug_print(const char *fmt, ...) {
     va_end(args);
 }
 #else
-static inline void debug_print(const char *fmt, ...) {
+static void debug_print(const char *fmt, ...) __attribute__((unused));
+static void debug_print(const char *fmt, ...) {
     (void)fmt;
 }
 #endif

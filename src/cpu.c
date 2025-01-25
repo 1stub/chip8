@@ -32,12 +32,6 @@ byte delay_timer;
 byte sound_timer;
 byte just_pressed_key;
 bool keyboard_status[CHIP8_KEY_COUNT];
-SDL_Keycode sdl_chip8_keymap[CHIP8_KEY_COUNT] = {
-    SDLK_1, SDLK_2, SDLK_3, SDLK_4,
-    SDLK_q, SDLK_w, SDLK_e, SDLK_r,
-    SDLK_a, SDLK_s, SDLK_d, SDLK_f,
-    SDLK_z, SDLK_x, SDLK_c, SDLK_v
-};
 
 void cpu_init() {
     int i;
