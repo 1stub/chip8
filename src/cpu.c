@@ -32,6 +32,7 @@ byte delay_timer;
 byte sound_timer;
 byte just_pressed_key;
 bool keyboard_status[CHIP8_KEY_COUNT];
+bool legacy;
 
 void cpu_init() {
     int i;
@@ -40,6 +41,7 @@ void cpu_init() {
     I  = 0x0000;
     delay_timer = 0;
     sound_timer = 0;
+    legacy = true;
 
     for(i = 0; i < 80; i++) {
         memory[i] = chip8_font[i];
@@ -118,14 +120,42 @@ void execute() {
         case 0x8: {
             switch(N) {
                 case   0: V[X] = V[Y]; break;
-                case   1: V[X] |= V[Y]; break;
-                case   2: V[X] &= V[Y]; break;
+                case   1: {
+                    if(!legacy) {
+                        V[X] |= V[Y];
+                    } 
+
+                    if(legacy) {
+                        word result = V[X] | V[Y];
+                        V[0xF] = (result >> 8) & 0x01;
+                        V[X] |= V[Y]; 
+                    }
+                    break;
+                }
+                case   2: {
+                    if(!legacy) {
+                        V[X] &= V[Y]; 
+                    }
+
+                    if(legacy) {
+                        word result = V[X] & V[Y];
+                        V[0xF] = (result >> 8) & 0x01;
+                        V[X] &= V[Y]; 
+                    }
+                    break;
+                }
                 case   3: {
-                    word result = V[X] ^ V[Y];
-                    V[0xF] = (result >> 8) & 0x01;
-                    V[X] = result; 
+                    if(!legacy) {
+                        V[X] ^= V[Y]; 
+                    }
+
+                    if(legacy) {
+                        word result = V[X] ^ V[Y];
+                        V[0xF] = (result >> 8) & 0x01;
+                        V[X] = result; 
+                    }
+                    break;
                 } 
-                break;
                 case   4: {
                     word sum = V[X] + V[Y];
                     V[X] = (byte)sum;
@@ -285,6 +315,10 @@ void execute() {
                     for(idx = 0; idx <= (X); idx++) {
                         write(I + idx, V[idx]);
                     }
+
+                    if (legacy) {
+                        I += ((X) + 1);
+                    }
                 }
                 break;
 
@@ -297,6 +331,10 @@ void execute() {
                     int idx;
                     for(idx = 0; idx <= (X); idx++) {
                         V[idx] = read(I + idx);
+                    }
+ 
+                    if (legacy) {
+                        I += ((X) + 1);
                     }
                 }
                 break;

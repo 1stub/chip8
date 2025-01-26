@@ -41,6 +41,12 @@ void init_display() {
     memset(pixel_buffer, 0, sizeof(pixel_buffer));
 }
 
+/**
+* To fix flickering we can interpolate when pixels are turned off.
+* Just store a temporary copy of the current buffer, look for those
+* pixels that have changed between the prev and new frames, make those
+* a greyish color for one frame then make zero.
+**/
 static void render_pixel_buffer() {
     SDL_Rect pixel_rect;  /* Declare variables at the beginning */
     int x, y;
