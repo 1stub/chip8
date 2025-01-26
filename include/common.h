@@ -18,7 +18,7 @@ typedef unsigned short word;
 #define DISPLAY_HEIGHT 256
 
 #define TARGET_FPS 60
-#define FRAME_DELAY 1000 / TARGET_FPS 
+#define FRAME_DELAY 60 / TARGET_FPS 
 
 #define DISPLAY_SCALE DISPLAY_HEIGHT / CHIP8_HEIGHT 
 

@@ -30,7 +30,6 @@ word SP;
 word I;
 byte delay_timer;
 byte sound_timer;
-byte just_pressed_key;
 bool keyboard_status[CHIP8_KEY_COUNT];
 bool legacy;
 
@@ -171,6 +170,7 @@ void execute() {
                 case   6: {
                     /* Some ambiguities to this instr */
                     word flag = V[X] & 0x0001;
+                    if(legacy) { V[X] = V[Y]; }
                     V[X] >>= 1;
                     V[0xF] = flag;
                 } break;
@@ -181,6 +181,7 @@ void execute() {
                 case 0xE: { 
                     /* Some ambiguities to this instr */
                     bool flag = V[X] & 0x80;
+                    if(legacy) { V[X] = V[Y]; }
                     V[X] = V[X] << 1;
                     V[0xF] = flag ? true : false;
                 }
@@ -218,15 +219,21 @@ void execute() {
             break;
         }
         case 0xD: {
+            int x_pos = V[X] & (CHIP8_WIDTH - 1);
+            int y_pos = V[Y] & (CHIP8_HEIGHT - 1);
             int idx, pixel;
 
             V[0xF] = 0;
             for (idx = 0; idx < N; idx++) {
                 byte data = read(I + idx);
+                if(y_pos + idx >= CHIP8_HEIGHT) break;
+
                 for (pixel = 0; pixel < 8; pixel++) {
                     byte sprite_pixel = GET_BIT(data, pixel);
-                    bool* display_pixel = &pixel_buffer[(V[Y] + idx) % CHIP8_HEIGHT]
-                                                      [(V[X] + (7 - pixel)) % CHIP8_WIDTH];
+                    int x_coord = x_pos + (7 - pixel);
+                    bool* display_pixel = &pixel_buffer[(y_pos + idx)][x_coord];
+                    if(x_coord >= CHIP8_WIDTH) continue;
+
 
                     if(sprite_pixel != 0 && *display_pixel != 0){
                             V[0xF] = 1;
@@ -275,14 +282,32 @@ void execute() {
                 break;
 
                 case 0x0A: {
+                    int i;
+                    static bool any_key_pressed = false;
+                    static int key = -1;
+
                     debug_print("[DEBUG] Wait for key instruction\n");
-                    if(just_pressed_key) {
-                        PC += 2;
-                        just_pressed_key = false;
-                        break;
+                    for(i = 0; i < CHIP8_KEY_COUNT; i++) {
+                        if(keyboard_status[i]) {
+                            PC += 2;
+                            any_key_pressed = true;
+                            key = i;
+                        }
                     }
+                    
+                    if(!any_key_pressed) PC -= 2;
+                    else {
+                        if(keyboard_status[key] == 0) {
+                            V[X] = key;
+                            key = -1;
+                            any_key_pressed = false;
+                        }else {
+                            PC -= 2;
+                        }
+                    }
+
+                    break;
                 }
-                break;
 
                 case 0x29: {
                     debug_print("I = location of font for character V[0x%x] = 0x%x\n", X, V[X]);

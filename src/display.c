@@ -111,7 +111,6 @@ void update_display(bool* quit) {
                 int chip8_key = keymap(e.key.keysym.sym);
                 if (chip8_key != -1) {  
                     keyboard_status[chip8_key] = true;
-                    just_pressed_key = true;  
                 }
             }
             break;
@@ -120,7 +119,6 @@ void update_display(bool* quit) {
                 int chip8_key = keymap(e.key.keysym.sym);
                 if (chip8_key != -1) {  
                     keyboard_status[chip8_key] = false;
-                    just_pressed_key = true;  
                 }
             }
             break;
