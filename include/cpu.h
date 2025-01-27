@@ -23,6 +23,7 @@ extern word I;
 extern byte delay_timer;
 extern byte sound_timer;
 extern bool keyboard_status[CHIP8_KEY_COUNT];
+extern bool can_render;
 
 void cpu_init();
 void execute();

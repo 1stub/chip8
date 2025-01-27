@@ -1,5 +1,6 @@
 #include "../include/display.h"
 #include <SDL2/SDL_events.h>
+#include <SDL2/SDL_stdinc.h>
 #include <SDL2/SDL_video.h>
 
 SDL_Window* win = NULL;
@@ -97,10 +98,8 @@ int keymap(unsigned char k) {
     }
 }
 
-void update_display(bool* quit) {
-    static Uint32 last_frame_time = 0;
-    Uint32 current_time = SDL_GetTicks();
-    
+/* Note: our display should be 60 fps and run ~700 cycles per second */
+void update_display(bool* quit) {    
     while( SDL_PollEvent( &e ) ) { 
         switch(e.type) {
             case SDL_QUIT: {
@@ -127,12 +126,8 @@ void update_display(bool* quit) {
         }
     }
 
-    if(current_time - last_frame_time >= FRAME_DELAY) {
+    if(can_render) {
         SDL_ShowWindow(win);
         render_pixel_buffer();
-
-        last_frame_time = current_time;
-    } else {
-        SDL_Delay(FRAME_DELAY - (current_time - last_frame_time));
     }
 }

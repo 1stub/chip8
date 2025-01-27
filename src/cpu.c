@@ -32,6 +32,7 @@ byte delay_timer;
 byte sound_timer;
 bool keyboard_status[CHIP8_KEY_COUNT];
 bool legacy;
+bool can_render;
 
 void cpu_init() {
     int i;
@@ -41,6 +42,7 @@ void cpu_init() {
     delay_timer = 0;
     sound_timer = 0;
     legacy = true;
+    can_render = true;
 
     for(i = 0; i < 80; i++) {
         memory[i] = chip8_font[i];
@@ -67,6 +69,7 @@ void execute() {
         case 0x0: {
             if(opcode == 0x00E0) {
                 memset(pixel_buffer, 0, sizeof(pixel_buffer));
+                can_render = true;
                 PC += 2;
             }else if(opcode == 0x00EE) {
                 if(SP == 0) {
@@ -118,13 +121,17 @@ void execute() {
         }
         case 0x8: {
             switch(N) {
-                case   0: V[X] = V[Y]; break;
+                case   0: { 
+                    V[X] = V[Y]; 
+                    break;
+                }
                 case   1: {
-                    if(!legacy) {
-                        V[X] |= V[Y];
+                    if(legacy) {
+                        V[X] = V[X] | V[Y];
+                        V[0xF] = 0x00;
                     } 
 
-                    if(legacy) {
+                    if(!legacy) {
                         word result = V[X] | V[Y];
                         V[0xF] = (result >> 8) & 0x01;
                         V[X] |= V[Y]; 
@@ -132,11 +139,12 @@ void execute() {
                     break;
                 }
                 case   2: {
-                    if(!legacy) {
-                        V[X] &= V[Y]; 
+                    if(legacy) {
+                        V[X] = V[X] & V[Y]; 
+                        V[0xF] = 0x00;
                     }
 
-                    if(legacy) {
+                    if(!legacy) {
                         word result = V[X] & V[Y];
                         V[0xF] = (result >> 8) & 0x01;
                         V[X] &= V[Y]; 
@@ -144,11 +152,12 @@ void execute() {
                     break;
                 }
                 case   3: {
-                    if(!legacy) {
-                        V[X] ^= V[Y]; 
+                    if(legacy) {
+                        V[X] = V[X] ^ V[Y]; 
+                        V[0xF] = 0x00;
                     }
 
-                    if(legacy) {
+                    if(!legacy) {
                         word result = V[X] ^ V[Y];
                         V[0xF] = (result >> 8) & 0x01;
                         V[X] = result; 
@@ -241,6 +250,7 @@ void execute() {
                     *display_pixel ^= sprite_pixel; /* XOR draw */
                 }
             }
+            can_render = true;
             PC += 2;
             break;
         }
@@ -329,8 +339,6 @@ void execute() {
                     write(I, digits[0]);
                     write(I + 1, digits[1]);
                     write(I + 2, digits[2]);
-
-                    PC += 2;
                 }
                 break;
 
