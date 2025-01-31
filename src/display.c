@@ -1,5 +1,6 @@
 #include "../include/display.h"
 #include <SDL2/SDL_events.h>
+#include <SDL2/SDL_stdinc.h>
 #include <SDL2/SDL_video.h>
 
 SDL_Window* win = NULL;
@@ -41,6 +42,12 @@ void init_display() {
     memset(pixel_buffer, 0, sizeof(pixel_buffer));
 }
 
+/**
+* To fix flickering we can interpolate when pixels are turned off.
+* Just store a temporary copy of the current buffer, look for those
+* pixels that have changed between the prev and new frames, make those
+* a greyish color for one frame then make zero.
+**/
 static void render_pixel_buffer() {
     SDL_Rect pixel_rect;  /* Declare variables at the beginning */
     int x, y;
@@ -91,10 +98,8 @@ int keymap(unsigned char k) {
     }
 }
 
-void update_display(bool* quit) {
-    static Uint32 last_frame_time = 0;
-    Uint32 current_time = SDL_GetTicks();
-    
+/* Note: our display should be 60 fps and run ~700 cycles per second */
+void update_display(bool* quit) {    
     while( SDL_PollEvent( &e ) ) { 
         switch(e.type) {
             case SDL_QUIT: {
@@ -105,7 +110,6 @@ void update_display(bool* quit) {
                 int chip8_key = keymap(e.key.keysym.sym);
                 if (chip8_key != -1) {  
                     keyboard_status[chip8_key] = true;
-                    just_pressed_key = true;  
                 }
             }
             break;
@@ -114,7 +118,6 @@ void update_display(bool* quit) {
                 int chip8_key = keymap(e.key.keysym.sym);
                 if (chip8_key != -1) {  
                     keyboard_status[chip8_key] = false;
-                    just_pressed_key = true;  
                 }
             }
             break;
@@ -123,12 +126,8 @@ void update_display(bool* quit) {
         }
     }
 
-    if(current_time - last_frame_time >= FRAME_DELAY) {
+    if(can_render) {
         SDL_ShowWindow(win);
         render_pixel_buffer();
-
-        last_frame_time = current_time;
-    } else {
-        SDL_Delay(FRAME_DELAY - (current_time - last_frame_time));
     }
 }

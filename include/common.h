@@ -47,4 +47,6 @@ static void debug_print(const char *fmt, ...) {
 }
 #endif
 
+#define NUM_INSTRS_PER_FRAME 8
+
 #endif /* COMMON_H */

@@ -30,8 +30,9 @@ word SP;
 word I;
 byte delay_timer;
 byte sound_timer;
-byte just_pressed_key;
 bool keyboard_status[CHIP8_KEY_COUNT];
+bool legacy;
+bool can_render;
 
 void cpu_init() {
     int i;
@@ -40,6 +41,8 @@ void cpu_init() {
     I  = 0x0000;
     delay_timer = 0;
     sound_timer = 0;
+    legacy = true;
+    can_render = true;
 
     for(i = 0; i < 80; i++) {
         memory[i] = chip8_font[i];
@@ -56,7 +59,7 @@ void cpu_init() {
 * common functionality, but this may change if I decide to really make this
 * emulator work well.
 **/
-void execute() {
+void execute(int tick) {
     word opcode = read(PC) << 8 | read(PC + 1);
     word opcode_first_nibble = opcode >> 12; 
 
@@ -66,6 +69,7 @@ void execute() {
         case 0x0: {
             if(opcode == 0x00E0) {
                 memset(pixel_buffer, 0, sizeof(pixel_buffer));
+                can_render = true;
                 PC += 2;
             }else if(opcode == 0x00EE) {
                 if(SP == 0) {
@@ -117,15 +121,49 @@ void execute() {
         }
         case 0x8: {
             switch(N) {
-                case   0: V[X] = V[Y]; break;
-                case   1: V[X] |= V[Y]; break;
-                case   2: V[X] &= V[Y]; break;
+                case   0: { 
+                    V[X] = V[Y]; 
+                    break;
+                }
+                case   1: {
+                    if(legacy) {
+                        V[X] = V[X] | V[Y];
+                        V[0xF] = 0x00;
+                    } 
+
+                    if(!legacy) {
+                        word result = V[X] | V[Y];
+                        V[0xF] = (result >> 8) & 0x01;
+                        V[X] |= V[Y]; 
+                    }
+                    break;
+                }
+                case   2: {
+                    if(legacy) {
+                        V[X] = V[X] & V[Y]; 
+                        V[0xF] = 0x00;
+                    }
+
+                    if(!legacy) {
+                        word result = V[X] & V[Y];
+                        V[0xF] = (result >> 8) & 0x01;
+                        V[X] &= V[Y]; 
+                    }
+                    break;
+                }
                 case   3: {
-                    word result = V[X] ^ V[Y];
-                    V[0xF] = (result >> 8) & 0x01;
-                    V[X] = result; 
+                    if(legacy) {
+                        V[X] = V[X] ^ V[Y]; 
+                        V[0xF] = 0x00;
+                    }
+
+                    if(!legacy) {
+                        word result = V[X] ^ V[Y];
+                        V[0xF] = (result >> 8) & 0x01;
+                        V[X] = result; 
+                    }
+                    break;
                 } 
-                break;
                 case   4: {
                     word sum = V[X] + V[Y];
                     V[X] = (byte)sum;
@@ -141,6 +179,7 @@ void execute() {
                 case   6: {
                     /* Some ambiguities to this instr */
                     word flag = V[X] & 0x0001;
+                    if(legacy) { V[X] = V[Y]; }
                     V[X] >>= 1;
                     V[0xF] = flag;
                 } break;
@@ -151,6 +190,7 @@ void execute() {
                 case 0xE: { 
                     /* Some ambiguities to this instr */
                     bool flag = V[X] & 0x80;
+                    if(legacy) { V[X] = V[Y]; }
                     V[X] = V[X] << 1;
                     V[0xF] = flag ? true : false;
                 }
@@ -188,15 +228,21 @@ void execute() {
             break;
         }
         case 0xD: {
+            int x_pos = V[X] & (CHIP8_WIDTH - 1);
+            int y_pos = V[Y] & (CHIP8_HEIGHT - 1);
             int idx, pixel;
 
             V[0xF] = 0;
             for (idx = 0; idx < N; idx++) {
                 byte data = read(I + idx);
+                if(y_pos + idx >= CHIP8_HEIGHT) break;
+
                 for (pixel = 0; pixel < 8; pixel++) {
                     byte sprite_pixel = GET_BIT(data, pixel);
-                    bool* display_pixel = &pixel_buffer[(V[Y] + idx) % CHIP8_HEIGHT]
-                                                      [(V[X] + (7 - pixel)) % CHIP8_WIDTH];
+                    int x_coord = x_pos + (7 - pixel);
+                    bool* display_pixel = &pixel_buffer[(y_pos + idx)][x_coord];
+                    if(x_coord >= CHIP8_WIDTH) continue;
+
 
                     if(sprite_pixel != 0 && *display_pixel != 0){
                             V[0xF] = 1;
@@ -204,6 +250,7 @@ void execute() {
                     *display_pixel ^= sprite_pixel; /* XOR draw */
                 }
             }
+            can_render = true;
             PC += 2;
             break;
         }
@@ -245,14 +292,32 @@ void execute() {
                 break;
 
                 case 0x0A: {
+                    int i;
+                    static bool any_key_pressed = false;
+                    static int key = -1;
+
                     debug_print("[DEBUG] Wait for key instruction\n");
-                    if(just_pressed_key) {
-                        PC += 2;
-                        just_pressed_key = false;
-                        break;
+                    for(i = 0; i < CHIP8_KEY_COUNT; i++) {
+                        if(keyboard_status[i]) {
+                            PC += 2;
+                            any_key_pressed = true;
+                            key = i;
+                        }
                     }
+                    
+                    if(!any_key_pressed) PC -= 2;
+                    else {
+                        if(keyboard_status[key] == 0) {
+                            V[X] = key;
+                            key = -1;
+                            any_key_pressed = false;
+                        }else {
+                            PC -= 2;
+                        }
+                    }
+
+                    break;
                 }
-                break;
 
                 case 0x29: {
                     debug_print("I = location of font for character V[0x%x] = 0x%x\n", X, V[X]);
@@ -274,8 +339,6 @@ void execute() {
                     write(I, digits[0]);
                     write(I + 1, digits[1]);
                     write(I + 2, digits[2]);
-
-                    PC += 2;
                 }
                 break;
 
@@ -284,6 +347,10 @@ void execute() {
                     int idx;
                     for(idx = 0; idx <= (X); idx++) {
                         write(I + idx, V[idx]);
+                    }
+
+                    if (legacy) {
+                        I += ((X) + 1);
                     }
                 }
                 break;
@@ -297,6 +364,10 @@ void execute() {
                     int idx;
                     for(idx = 0; idx <= (X); idx++) {
                         V[idx] = read(I + idx);
+                    }
+ 
+                    if (legacy) {
+                        I += ((X) + 1);
                     }
                 }
                 break;
