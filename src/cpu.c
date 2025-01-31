@@ -59,7 +59,7 @@ void cpu_init() {
 * common functionality, but this may change if I decide to really make this
 * emulator work well.
 **/
-void execute() {
+void execute(int tick) {
     word opcode = read(PC) << 8 | read(PC + 1);
     word opcode_first_nibble = opcode >> 12; 
 

@@ -26,7 +26,7 @@ extern bool keyboard_status[CHIP8_KEY_COUNT];
 extern bool can_render;
 
 void cpu_init();
-void execute();
+void execute(int tick);
 void update_timers();
 
 #endif
