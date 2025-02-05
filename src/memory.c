@@ -4,6 +4,7 @@
 
 byte memory[CHIP8_MEMORY_SIZE];
 bool pixel_buffer[CHIP8_HEIGHT][CHIP8_WIDTH];
+bool old_pixel_buffer[CHIP8_HEIGHT][CHIP8_WIDTH];
 
 byte read(word index) {
     return memory[index];
