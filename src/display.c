@@ -7,6 +7,9 @@ SDL_Window* win = NULL;
 SDL_Surface* win_surface = NULL;
 SDL_Event e;
 
+#define FADE_OUT_FRAMES 16
+int fade_alpha[CHIP8_HEIGHT][CHIP8_WIDTH];
+
 void init_display() {
     if (SDL_Init(SDL_INIT_TIMER) == 0) {
         printf("[INFO] SDL Timer subsystem initialized successfully.\n");
@@ -40,6 +43,8 @@ void init_display() {
     win_surface = SDL_GetWindowSurface(win);
 
     memset(pixel_buffer, 0, sizeof(pixel_buffer));
+    memset(old_pixel_buffer, 0, sizeof(old_pixel_buffer));
+    memset(fade_alpha, 0, sizeof(fade_alpha));
 }
 
 /**
@@ -60,13 +65,24 @@ static void render_pixel_buffer() {
 
     for ( y = 0; y < CHIP8_HEIGHT; y++) {
         for ( x = 0; x < CHIP8_WIDTH; x++) {
-            if (pixel_buffer[y][x] != 0) {
-                pixel_rect.x = x * DISPLAY_SCALE;  
-                pixel_rect.y = y * DISPLAY_SCALE;
-                SDL_FillRect(win_surface, &pixel_rect, SDL_MapRGB(win_surface->format, 0xFF, 0xDD, 0x33)); 
+            pixel_rect.x = x * DISPLAY_SCALE;  
+            pixel_rect.y = y * DISPLAY_SCALE;
+            if(old_pixel_buffer[y][x] != pixel_buffer[y][x] && pixel_buffer[y][x] == 0) {
+                fade_alpha[y][x] = FADE_OUT_FRAMES;
+            }
+            if(fade_alpha[y][x] > 0) {
+                SDL_FillRect(win_surface, &pixel_rect, SDL_MapRGBA(win_surface->format, 0xFF, 0xDD, 0x33, 0x00));
+                fade_alpha[y][x]--;
+            }
+            else if (pixel_buffer[y][x] != 0) {
+                SDL_FillRect(win_surface, &pixel_rect, SDL_MapRGBA(win_surface->format, 0xFF, 0xDD, 0x33, 0xFF)); 
+                fade_alpha[y][x] = 0;
             }
         }
     }
+
+    /* Log previous frame */
+    memcpy(old_pixel_buffer, pixel_buffer, sizeof(pixel_buffer));
 
     SDL_UpdateWindowSurface(win);  
 }
