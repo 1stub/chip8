@@ -7,8 +7,8 @@ SDL_Window* win = NULL;
 SDL_Surface* win_surface = NULL;
 SDL_Event e;
 
-#define FADE_OUT_FRAMES 16
-int fade_alpha[CHIP8_HEIGHT][CHIP8_WIDTH];
+SDL_Color pixel_color = {0xFF, 0xDD, 0x33, 0xFF};
+SDL_Color bg_color = {0x00, 0x00, 0x00, 0xFF};
 
 void init_display() {
     if (SDL_Init(SDL_INIT_TIMER) == 0) {
@@ -44,7 +44,17 @@ void init_display() {
 
     memset(pixel_buffer, 0, sizeof(pixel_buffer));
     memset(old_pixel_buffer, 0, sizeof(old_pixel_buffer));
-    memset(fade_alpha, 0, sizeof(fade_alpha));
+}
+
+SDL_Color lerp(SDL_Color bg_color, SDL_Color px_color, float t) {
+    SDL_Color final_color;
+
+    final_color.r = bg_color.r + t * (px_color.r - bg_color.r);
+    final_color.g = bg_color.g + t * (px_color.g - bg_color.g);
+    final_color.b = bg_color.b + t * (px_color.b - bg_color.b);
+    final_color.a = bg_color.a + t * (px_color.a - bg_color.a);
+
+    return final_color;
 }
 
 /**
@@ -67,16 +77,13 @@ static void render_pixel_buffer() {
         for ( x = 0; x < CHIP8_WIDTH; x++) {
             pixel_rect.x = x * DISPLAY_SCALE;  
             pixel_rect.y = y * DISPLAY_SCALE;
-            if(old_pixel_buffer[y][x] != pixel_buffer[y][x] && pixel_buffer[y][x] == 0) {
-                fade_alpha[y][x] = FADE_OUT_FRAMES;
+            if(old_pixel_buffer[y][x] ^ pixel_buffer[y][x]) {
+                SDL_Color lerpd_color = lerp(bg_color, pixel_color, 0.5);
+                SDL_FillRect(win_surface, &pixel_rect, SDL_MapRGBA(win_surface->format, lerpd_color.r, lerpd_color.g, lerpd_color.b, lerpd_color.a)); 
             }
-            if(fade_alpha[y][x] > 0) {
-                SDL_FillRect(win_surface, &pixel_rect, SDL_MapRGBA(win_surface->format, 0xFF, 0xDD, 0x33, 0x00));
-                fade_alpha[y][x]--;
-            }
+
             else if (pixel_buffer[y][x] != 0) {
-                SDL_FillRect(win_surface, &pixel_rect, SDL_MapRGBA(win_surface->format, 0xFF, 0xDD, 0x33, 0xFF)); 
-                fade_alpha[y][x] = 0;
+                SDL_FillRect(win_surface, &pixel_rect, SDL_MapRGBA(win_surface->format, pixel_color.r, pixel_color.g, pixel_color.b, pixel_color.a)); 
             }
         }
     }
